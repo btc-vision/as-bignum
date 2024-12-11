@@ -389,23 +389,56 @@ export class u256 {
   @operator('>>')
   static shr(value: u256, shift: i32): u256 {
     shift &= 255;
-    var off = shift as u64;
-    if (shift <= 64) {
-      if (shift == 0) return value;
-      let hi2 =  value.hi2 >> off;
-      let hi1 = (value.hi1 >> off) | (value.hi2 << 64 - off);
-      let lo2 = (value.lo2 >> off) | (value.hi1 << 64 - off);
-      let lo1 = (value.lo1 >> off) | (value.lo2 << 64 - off);
-      return new u256(lo1, lo2, hi1, hi2);
-    } else if (shift > 64 && shift <= 128) {
-      let hi1 = value.hi2 >> 128 - off;
-      return new u256(value.lo2, value.hi1, hi1);
-    } else if (shift > 128 && shift <= 192) {
-      let lo2 = value.hi2 >> 192 - off;
-      return new u256(value.hi1, lo2);
-    } else {
-      return new u256(value.hi2 >> 256 - off);
+    if (shift == 0) return value;
+
+    const w = shift >>> 6; // how many full 64-bit words to drop
+    const b = shift & 63; // how many bits to shift within a word
+
+    // Extract the words
+    let lo1 = value.lo1;
+    let lo2 = value.lo2;
+    let hi1 = value.hi1;
+    let hi2 = value.hi2;
+
+    // Shift words down by w words
+    // For w = 1, move lo2->lo1, hi1->lo2, hi2->hi1, and hi2 = 0
+    // For w = 2, move hi1->lo1, hi2->lo2, and zeros in hi1, hi2
+    // For w = 3, move hi2->lo1 and zeros in others
+    // For w >= 4, everything is zero.
+    if (w >= 4) {
+      // Shifting by >= 256 bits zeros out everything
+      return u256.Zero;
+    } else if (w == 3) {
+      lo1 = hi2;
+      lo2 = 0;
+      hi1 = 0;
+      hi2 = 0;
+    } else if (w == 2) {
+      lo1 = hi1;
+      lo2 = hi2;
+      hi1 = 0;
+      hi2 = 0;
+    } else if (w == 1) {
+      lo1 = lo2;
+      lo2 = hi1;
+      hi1 = hi2;
+      hi2 = 0;
     }
+
+    // Now apply the bit shift b
+    if (b > 0) {
+      // Bring down bits from the higher word
+      const carryLo2 = hi1 << (64 - b);
+      const carryLo1 = lo2 << (64 - b);
+      const carryHi1 = hi2 << (64 - b);
+
+      lo1 = (lo1 >>> b) | carryLo1;
+      lo2 = (lo2 >>> b) | carryLo2;
+      hi1 = (hi1 >>> b) | carryHi1;
+      hi2 = hi2 >>> b;
+    }
+
+    return new u256(lo1, lo2, hi1, hi2);
   }
 
   @inline @operator('>>>')
