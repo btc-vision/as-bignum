@@ -387,10 +387,10 @@ export function __clz128(lo: u64, hi: i64): i32 {
   let h = <u64>hi;  // reinterpret hi as unsigned
   if (h != 0) {
     // The top 64 bits are set => just measure their leading zeros
-    return clz64(h);
+    return i64.clz(h);
   } else {
     // If hi is 0, the leading zeros are "64 plus however many are in lo"
-    return 64 + clz64(lo);
+    return 64 + i64.clz(lo);
   }
 }
 
@@ -405,10 +405,10 @@ export function __clz128(lo: u64, hi: i64): i32 {
 export function __ctz128(lo: u64, hi: u64): i32 {
   if (lo != 0) {
     // If the lower 64 bits are non-zero, measure ctz(lo)
-    return ctz64(lo);
+    return i64.ctz(lo);
   } else {
     // Otherwise, ctz is 64 plus ctz(hi)
-    return 64 + ctz64(hi);
+    return 64 + i64.ctz(hi);
   }
 }
 
