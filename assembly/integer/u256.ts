@@ -411,27 +411,32 @@ export class u256 {
    */
   @operator('<<')
   public static shl(value: u256, shift: i32): u256 {
-    if (shift == 0) {
-      return value.clone();
+    // If shift <= 0, no left shift needed (shift=0 => return clone, shift<0 => treat as 0).
+    if (shift <= 0) {
+      return shift == 0 ? value.clone() : new u256();
     }
-    shift &= 255;
+
+    // If shift >= 256, the result is zero
     if (shift >= 256) {
-      return u256.Zero;
+      return new u256();
     }
+
+    // Now shift is in [1..255]. Masking is optional for clarity:
+    shift &= 255; // (No real effect now, but harmless to keep.)
+
+    const bitsPerSegment = 64;
+    const segmentShift = (shift / bitsPerSegment) | 0;
+    const bitShift = shift % bitsPerSegment;
 
     const segments = [value.lo1, value.lo2, value.hi1, value.hi2];
-    const result = [<u64>0, <u64>0, <u64>0, <u64>0];
+    const result = new Array<u64>(4).fill(0);
 
-    let segShift = shift >>> 6;
-    let bitShift = shift & 63;
-    const bitsPerSeg = 64;
-
-    for (let i = 0; i < 4; i++) {
-      if (i + segShift < 4) {
-        result[i + segShift] |= segments[i] << bitShift;
+    for (let i = 0; i < segments.length; i++) {
+      if (i + segmentShift < segments.length) {
+        result[i + segmentShift] |= segments[i] << bitShift;
       }
-      if (bitShift != 0 && i + segShift + 1 < 4) {
-        result[i + segShift + 1] |= segments[i] >>> (bitsPerSeg - bitShift);
+      if (bitShift != 0 && i + segmentShift + 1 < segments.length) {
+        result[i + segmentShift + 1] |= segments[i] >>> (bitsPerSegment - bitShift);
       }
     }
 
@@ -497,19 +502,35 @@ export class u256 {
    */
   @operator('>>')
   static shr(value: u256, shift: i32): u256 {
+    // If shift <= 0 => shift=0 means "no shift," shift<0 is arguably invalid.
+    // We just return a if shift=0, else zero if negative. Adjust to your preference.
+    if (shift <= 0) {
+      return shift == 0 ? value.clone() : u256.Zero;
+    }
+
+    // If shift >= 256 => the result is zero for a 256-bit integer
+    if (shift >= 256) {
+      return u256.Zero;
+    }
+
+    // Now shift is in [1..255]
+    // Some code likes to do shift &= 255; but after the above check, it’s no longer necessary.
+    // We'll keep it for consistency:
     shift &= 255;
+
+    // If after masking shift is 0, that means the original shift was multiple of 256, but we handled it above
     if (shift == 0) return value.clone();
-    if (shift >= 256) return u256.Zero;
 
     const w = shift >>> 6; // how many full 64-bit words to drop
-    const b = shift & 63;  // how many bits to shift in leftover
+    const b = shift & 63;  // how many bits to shift within a word
 
+    // Extract the words
     let lo1 = value.lo1;
     let lo2 = value.lo2;
     let hi1 = value.hi1;
     let hi2 = value.hi2;
 
-    // shift by w segments
+    // Shift words down by w words
     if (w >= 4) {
       return u256.Zero;
     } else if (w == 3) {
@@ -529,17 +550,18 @@ export class u256 {
       hi2 = 0;
     }
 
-    // shift by b bits
+    // Now apply the bit shift b
     if (b > 0) {
-      let carryLo2 = hi1 << (64 - b);
-      let carryLo1 = lo2 << (64 - b);
-      let carryHi1 = hi2 << (64 - b);
+      const carryLo2 = hi1 << (64 - b);
+      const carryLo1 = lo2 << (64 - b);
+      const carryHi1 = hi2 << (64 - b);
 
       lo1 = (lo1 >>> b) | carryLo1;
       lo2 = (lo2 >>> b) | carryLo2;
       hi1 = (hi1 >>> b) | carryHi1;
       hi2 = hi2 >>> b;
     }
+
     return new u256(lo1, lo2, hi1, hi2);
   }
 

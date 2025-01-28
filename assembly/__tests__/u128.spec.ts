@@ -528,9 +528,9 @@ describe("Basic Operations", () => {
     expect(a << 65).toStrictEqual(new u128(0, 2));
   });
 
-  it("Should periodic left shift one number", () => {
+  it("Should return zero if shift bigger than 128", () => {
     var a = new u128(1, 0);
-    expect(a << (65 + 128)).toStrictEqual(new u128(0, 2));
+    expect(a << (65 + 128)).toStrictEqual(new u128(0, 0));
   });
 
   it("Should invariant left shift zero number", () => {

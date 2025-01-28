@@ -220,23 +220,22 @@ export class u128 {
 
   @inline @operator('<<')
   static shl(value: u128, shift: i32): u128 {
-    shift &= 127;
+    if (shift <= 0) {
+      return shift == 0 ? value.clone() : new u128();
+    }
 
-    // need for preventing redundant i32 -> u64 extends
-    var shift64 = shift as u64;
+    if (shift >= 128) {
+      return new u128();
+    }
 
-    var mod1 = ((((shift64 + 127) | shift64) & 64) >> 6) - 1;
-    var mod2 = (shift64 >> 6) - 1;
-
-    shift64 &= 63;
-
-    var vl = value.lo;
-    var lo = vl << shift64;
-    var hi = lo & ~mod2;
-
-    hi |= ((value.hi << shift64) | ((vl >> (64 - shift64)) & mod1)) & mod2;
-
-    return new u128(lo & mod2, hi);
+    if (shift < 64) {
+      const lo = value.lo << shift;
+      const hi = (value.hi << shift) | (value.lo >>> (64 - shift));
+      return new u128(lo, hi);
+    } else {
+      // s in [64..127]
+      return new u128(0, value.lo << (shift - 64));
+    }
   }
 
   @inline @operator('>>')

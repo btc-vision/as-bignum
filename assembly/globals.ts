@@ -382,15 +382,16 @@ function ctz64(x: u64): i32 {
  *
  *   hi is signed in i128, but we interpret it as unsigned here.
  */
+// @ts-ignore: decorator
 @global @inline
 export function __clz128(lo: u64, hi: i64): i32 {
-  let h = <u64>hi;  // reinterpret hi as unsigned
-  if (h != 0) {
-    // The top 64 bits are set => just measure their leading zeros
-    return i64.clz(h);
-  } else {
+  let h: u64 = <u64>hi;  // reinterpret hi as unsigned
+  if (h == 0) {
     // If hi is 0, the leading zeros are "64 plus however many are in lo"
-    return 64 + i64.clz(lo);
+    return 64 + <i32>i64.clz(lo);
+  } else {
+    // The top 64 bits are set => just measure their leading zeros
+    return <i32>i64.clz(h);
   }
 }
 
@@ -401,14 +402,15 @@ export function __clz128(lo: u64, hi: i64): i32 {
  *   For i128 we typically treat hi as signed, but ctz is purely bitwise, so we
  *   can pass it as u64 as well.
  */
+// @ts-ignore: decorator
 @global @inline
 export function __ctz128(lo: u64, hi: u64): i32 {
-  if (lo != 0) {
-    // If the lower 64 bits are non-zero, measure ctz(lo)
-    return i64.ctz(lo);
-  } else {
+  if (lo == 0) {
     // Otherwise, ctz is 64 plus ctz(hi)
-    return 64 + i64.ctz(hi);
+    return 64 + <i32>i64.ctz(hi);
+  } else {
+    // If the lower 64 bits are non-zero, measure ctz(lo)
+    return <i32>i64.ctz(lo);
   }
 }
 
