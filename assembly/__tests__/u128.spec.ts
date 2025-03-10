@@ -1,5 +1,36 @@
-import { u128 } from '../integer/u128';
+import { u128 } from '../integer';
 import { arrayToUint8Array } from "./utils";
+
+describe('Audit fixes', () => {
+  it("test rem10 1", () => {
+    let a = new u128(2, 0);
+    expect(u128.rem10(a)).toStrictEqual(new u128(2, 0));
+  });
+
+  it("test rem10 2", () => {
+    let a = new u128(16222495557571259006, 18092382526624944601);
+    expect(u128.rem10(a)).toStrictEqual(new u128(2, 0));
+  });
+
+  it("test ord", () => {
+    let a = new u128(11862732932339670732, 0);
+    let b = new u128(11791870301324684439, 10039605328933046698);
+    expect(u128.ord(a, b)).toBe(-1);
+  });
+
+  it("test muldiv", () => {
+    let a = new u128(15168594103972142211, 13112993984347045001);
+    let b = new u128(3336517327, 0);
+    let c = new u128(2932175525583687935, 10692182455030519441);
+    expect(u128.muldiv(a, b, c)).toStrictEqual(new u128(4091936498, 0));
+  });
+
+  it("test sqr", () => {
+    let a = new u128(17448461305379225827, 14768026361276340486);
+    expect((u128.sqr(a))).toStrictEqual(new u128(12113794852041967945,
+      18342544934353289530));
+  });
+});
 
 describe("String Conversion", () => {
   it("Should convert to decimal string 1", () => {

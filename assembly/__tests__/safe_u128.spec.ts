@@ -1,5 +1,15 @@
 import { u128Safe as u128 } from '../integer/safe/u128';
 
+describe('Audit fixes', () => {
+  it("test safe add", () => {
+    expect(() => {
+      let a = new u128(14578515230910040473, 11834292359786415467);
+      let b = new u128(9202606200622059783, 8690157821842247249);
+      !(a + b);
+    }).toThrow();
+  });
+});
+
 describe("Basic operations", () => {
   it("Should add two numbers 1", () => {
     var a = new u128(100, 255);
