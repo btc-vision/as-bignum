@@ -32,8 +32,12 @@
     "test:ci": "asp --config as-pect.config.mjs --summary --no-logo"
   },
   "devDependencies": {
-    "@as-pect/cli": "^8.1.0",
-    "assemblyscript": "^0.27.31",
+    "@btc-vision/as-covers-assembly": "^0.4.2",
+    "@btc-vision/as-covers-transform": "^0.4.3",
+    "@btc-vision/as-pect-assembly": "^8.1.0",
+    "@btc-vision/as-pect-cli": "^8.1.0",
+    "@btc-vision/as-pect-transform": "^8.1.0",
+    "assemblyscript": "^0.27.34",
     "typescript": "^5.7.2"
   },
   "files": [
