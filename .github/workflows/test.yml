@@ -21,10 +21,10 @@ jobs:
         with:
           node-version: ${{ matrix.node_version }}
           check-latest: true
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: yarn
+        run: npm i
 
       - name: Test sources
-        run: yarn test:ci
+        run: npm run test:ci
