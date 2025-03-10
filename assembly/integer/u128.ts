@@ -539,11 +539,14 @@ export class u128 {
    */
   @inline
   static ord(a: u128, b: u128): i32 {
-    var dlo = a.lo - b.lo;
-    var dhi = a.hi - b.hi;
-    var cmp = <i32>select<i64>(dhi, dlo, dhi != 0);
-    // normalize to [-1, 0, 1]
-    return i32(cmp > 0) - i32(cmp < 0);
+    // if a > b => +1
+    // if a < b => -1
+    // if equal => 0
+    if (a.hi > b.hi) return 1;
+    if (a.hi < b.hi) return -1;
+    if (a.lo > b.lo) return 1;
+    if (a.lo < b.lo) return -1;
+    return 0;
   }
 
   /**
@@ -592,48 +595,15 @@ export class u128 {
    *
    * @returns 128-bit unsigned integer
    */
-  static muldiv(number: u128, numerator: u128, denominator: u128): u128 {
-    let a = number;
-    let b = numerator;
-    let c = denominator;
+  static muldiv(a: u128, b: u128, c: u128): u128 {
+    let A = u256.fromU128(a);
+    let B = u256.fromU128(b);
+    let C = u256.fromU128(c);
 
-    let ql = __udivmod128(b.lo, b.hi, c.lo, c.hi);
+    let product = u256.mul(A, B);
+    let quotient = u256.div(product, C);
 
-    let qn = new u128(ql, __divmod_quot_hi);             // b / c
-    let rn = new u128(__divmod_rem_lo, __divmod_rem_hi); // b % c
-
-    let q = u128.Zero;
-    let r = u128.Zero;
-    let n = a.clone();
-
-    while (!n.isZero()) {
-      if (n.lo & 1) {
-        // @ts-ignore
-        q += qn;
-        // @ts-ignore
-        r += rn;
-        if (r >= c) {
-          // @ts-ignore
-          ++q;
-          // @ts-ignore
-          r -= c;
-        }
-      }
-      // @ts-ignore
-      n >>= 1;
-      // @ts-ignore
-      qn <<= 1;
-      // @ts-ignore
-      rn <<= 1;
-
-      if (rn >= c) {
-        // @ts-ignore
-        ++qn;
-        // @ts-ignore
-        rn -= c;
-      }
-    }
-    return q;
+    return quotient.toU128();
   }
 
   @inline
@@ -727,29 +697,11 @@ export class u128 {
    * @returns 128-bit unsigned integer
    */
   sqr(): this {
-    var u = this.lo,
-      v = this.hi;
-
-    var u1 = u & 0xFFFFFFFF;
-    var t = u1 * u1;
-    var w = t & 0xFFFFFFFF;
-    var k = t >> 32;
-
-    u >>= 32;
-    var m = u * u1;
-    t = m + k;
-    var w1 = t >> 32;
-
-    t = m + (t & 0xFFFFFFFF);
-
-    var lo = (t << 32) + w;
-    var hi = u * u;
-    hi += w1 + (t >> 32);
-    hi += u * v << 1;
-
-    this.lo = lo;
-    this.hi = hi;
-
+    // Use built-in 128×128 => 128 multiplication
+    // i.e. "x * x"
+    let tmp = u128.mul(this, this);
+    this.lo = tmp.lo;
+    this.hi = tmp.hi;
     return this;
   }
 

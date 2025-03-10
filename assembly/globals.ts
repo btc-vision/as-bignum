@@ -539,36 +539,55 @@ function __udivmod128core(alo: u64, ahi: u64, blo: u64, bhi: u64): u64 {
 // @ts-ignore: decorator
 @global
 export function __udivmod128_10(lo: u64, hi: u64): u64 {
+  // Shortcut for small hi == 0
   if (!hi) {
     __divmod_quot_hi = 0;
+    // For values < 10, remainder is the value itself, quotient is 0
     if (lo < 10) {
-      __divmod_rem_lo = 0;
+      __divmod_rem_lo = lo;    // <--- fix: store the actual remainder
       __divmod_rem_hi = 0;
-      return 0;
+      return 0;               // quotient is 0
     } else {
+      // For larger lo, do a normal 64-bit / 10
       let qlo = lo / 10;
-      __divmod_rem_lo = lo - qlo * 10;
+      __divmod_rem_lo = lo - qlo * 10;  // remainder = lo % 10
       __divmod_rem_hi = 0;
-      return qlo;
+      return qlo;                      // quotient
     }
   }
 
+  // For hi != 0, we do an approximate approach:
   var q: u128, r: u128;
   var n = new u128(lo, hi);
 
+  // approximate quotient 'q' via shifting
   q = n >> 1;
   q += n >> 2;
   q += q >> 4;
   q += q >> 8;
   q += q >> 16;
   q += q >> 32;
-  q += u128.fromU64(q.hi); // q >> 64
+  // extra shift from q.hi
+  q += u128.fromU64(q.hi);
   q >>= 3;
-  r = n - (((q << 2) + q) << 1);
-  n = q + u128.fromBool(r.lo > 9);
 
-  __divmod_quot_hi = n.hi;
+  // remainder r = n - (q * 10)
+  // We do: (q << 2) + q == q * 5 => then << 1 => q * 10
+  r = n - (((q << 2) + q) << 1);
+
+  // If remainder >= 10, we must increment quotient and subtract 10 from remainder.
+  if (r.lo > 9 || r.hi != 0) {
+    q = q + u128.One;   // q++
+    // subtract 10 from remainder
+    let oldLo = r.lo;
+    r.lo -= 10;
+    // If underflow occurs (r.lo > oldLo) we’d borrow from r.hi
+    let borrow = (r.lo > oldLo) ? 1 : 0;
+    r.hi -= borrow;
+  }
+
+  __divmod_quot_hi = q.hi;
   __divmod_rem_lo = r.lo;
   __divmod_rem_hi = r.hi;
-  return n.lo;
+  return q.lo;
 }
