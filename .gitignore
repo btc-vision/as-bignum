@@ -5,10 +5,8 @@ Thumbs.db
 .idea
 *.iml
 *.code-workspace
-yarn-error.log
 .vscode/
 node_modules/
 playground/
 coverage/
 build/
-.idea
