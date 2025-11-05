@@ -32,13 +32,13 @@
     "test:ci": "asp --config as-pect.config.mjs --summary --no-logo"
   },
   "devDependencies": {
-    "@btc-vision/as-covers-assembly": "^0.4.2",
-    "@btc-vision/as-covers-transform": "^0.4.3",
-    "@btc-vision/as-pect-assembly": "^8.1.0",
-    "@btc-vision/as-pect-cli": "^8.1.0",
-    "@btc-vision/as-pect-transform": "^8.1.0",
-    "assemblyscript": "^0.27.36",
-    "typescript": "^5.8.3"
+    "@btc-vision/as-covers-assembly": "^0.4.4",
+    "@btc-vision/as-covers-transform": "^0.4.4",
+    "@btc-vision/as-pect-assembly": "^8.2.0",
+    "@btc-vision/as-pect-cli": "^8.2.0",
+    "@btc-vision/as-pect-transform": "^8.2.0",
+    "assemblyscript": "^0.28.9",
+    "typescript": "^5.9.3"
   },
   "files": [
     "assembly/",
