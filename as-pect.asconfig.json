@@ -25,7 +25,9 @@
     "exportMemory": true,
     "exportRuntime": true,
     "exportTable": true,
-    "use": ["RTRACE=1"]
+    "use": [
+      "RTRACE=1"
+    ]
   },
   "entries": [
     "./node_modules/@btc-vision/as-pect-assembly/assembly/index.ts"
