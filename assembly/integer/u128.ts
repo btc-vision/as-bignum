@@ -286,9 +286,6 @@ export class u128 {
 
     // Unrolled shift logic
     if (shift < 64) {
-      // Shifting less than 64 bits:
-      // High part is shifted right directly.
-      // Low part comes from shifting low and adding in bits from the high part.
       let hi = value.hi >> shift;
       let lo = (value.hi << (64 - shift)) | (value.lo >> shift);
       return new u128(lo, hi);
