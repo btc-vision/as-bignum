@@ -10,3 +10,4 @@ node_modules/
 playground/
 coverage/
 build/
+package-lock.json
