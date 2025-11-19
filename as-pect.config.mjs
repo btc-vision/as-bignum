@@ -15,10 +15,10 @@ export default {
    * Add your required AssemblyScript imports here.
    */
   async instantiate(memory, createImports, instantiate, binary) {
-    return instantiate(binary, createImports({ env: { memory } }));
+    return instantiate(binary, createImports({env: {memory}}));
   },
   /** Enable code coverage. */
-  // coverage: ["assembly/**/*.ts"],
+  coverage: ["assembly/**/*.ts"],
   /**
    * Specify if the binary wasm file should be written to the file system.
    */

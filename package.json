@@ -37,8 +37,11 @@
     "@btc-vision/as-pect-assembly": "^8.2.0",
     "@btc-vision/as-pect-cli": "^8.2.0",
     "@btc-vision/as-pect-transform": "^8.2.0",
+    "@btc-vision/opnet-transform": "^0.1.12",
     "assemblyscript": "^0.28.9",
-    "typescript": "^5.9.3"
+    "micromatch": "^4.0.8",
+    "typescript": "^5.9.3",
+    "yaml": "^2.8.1"
   },
   "files": [
     "assembly/",

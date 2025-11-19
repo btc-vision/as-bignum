@@ -12,12 +12,6 @@ import {
  * Optimized for gas efficiency with unrolled loops and direct memory access.
  */
 export class u256 {
-  // CACHE: Static instances to avoid allocation for common values.
-  // WARNING: Do not mutate these instances directly.
-  private static readonly _ZERO: u256 = new u256(0, 0, 0, 0);
-  private static readonly _ONE: u256 = new u256(1, 0, 0, 0);
-  private static readonly _MAX: u256 = new u256(-1, -1, -1, -1);
-
   /**
    * Constructs a new `u256` with the specified 64-bit limbs.
    * @constructor
@@ -33,10 +27,10 @@ export class u256 {
     public hi2: u64 = 0,
   ) {}
 
-  @inline static get Zero(): u256 { return u256._ZERO; }
-  @inline static get One(): u256 { return u256._ONE; }
-  @inline static get Min(): u256 { return u256._ZERO; }
-  @inline static get Max(): u256 { return u256._MAX; }
+  @inline static get Zero(): u256 { return  new u256(0, 0, 0, 0); }
+  @inline static get One(): u256 { return new u256(1, 0, 0, 0); }
+  @inline static get Min(): u256 { return  new u256(0, 0, 0, 0); }
+  @inline static get Max(): u256 { return new u256(-1, -1, -1, -1); }
 
   /**
    * A constant representing the maximum value for 256-bit unsigned integer.

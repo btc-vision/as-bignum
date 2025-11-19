@@ -21,6 +21,10 @@ import { atou128, u128toDecimalString } from '../utils';
 @lazy const HEX_CHARS = '0123456789abcdef';
 
 export class u128 {
+  // CACHE: Static instances to avoid allocation
+  private static readonly _ZERO: u128 = new u128(0, 0);
+  private static readonly _ONE: u128 = new u128(1, 0);
+  private static readonly _MAX: u128 = new u128(-1, -1);
 
   /**
    * Create 128-bit unsigned integer from 64-bit parts
@@ -33,20 +37,40 @@ export class u128 {
   ) {
   }
 
-  @inline static get Zero(): u128 {
-    return new u128();
+  @inline static get immutableZero(): u128 {
+    return u128._ZERO;
   }
 
-  @inline static get One(): u128 {
-    return new u128(1);
+  @inline static get immutableOne(): u128 {
+    return u128._ONE;
   }
 
-  @inline static get Min(): u128 {
-    return new u128();
+  @inline static get immutableMin(): u128 {
+    return u128._ZERO;
   }
 
-  @inline static get Max(): u128 {
-    return new u128(-1, -1);
+  @inline static get immutableMax(): u128 {
+    return u128._MAX;
+  }
+
+  @inline static get Zero(): u128 { return new u128(0, 0); }
+  @inline static get One(): u128 { return new u128(1, 0); }
+  @inline static get Min(): u128 { return new u128(0, 0); }
+  @inline static get Max(): u128 { return new u128(-1, -1); }
+
+  /**
+   * Ensures the current instance is not a static constant.
+   * If it is, throws an error.
+   * Cost: 3 integer comparisons. Cheap insurance.
+   */
+  @inline
+  private checkMutable(): void {
+    const ptr = changetype<usize>(this);
+    if (ptr == changetype<usize>(u128._ZERO) ||
+      ptr == changetype<usize>(u128._ONE) ||
+      ptr == changetype<usize>(u128._MAX)) {
+      throw new Error("u128: Immutable constant");
+    }
   }
 
   @inline
@@ -76,17 +100,17 @@ export class u128 {
 
   @inline
   static fromI64(value: i64): u128 {
+    if (value == 0) return u128.Zero;
+    if (value == 1) return u128.One;
     return new u128(value, value >> 63);
   }
 
-  // TODO need improvement
-
   @inline
   static fromU64(value: u64): u128 {
+    if (value == 0) return u128.Zero;
+    if (value == 1) return u128.One;
     return new u128(value);
   }
-
-  // TODO need improvement
 
   // max safe uint for f64 actually 53-bits
   @inline
@@ -102,17 +126,21 @@ export class u128 {
 
   @inline
   static fromI32(value: i32): u128 {
+    if (value == 0) return u128.Zero;
+    if (value == 1) return u128.One;
     return new u128(value, value >> 31);
   }
 
   @inline
   static fromU32(value: u32): u128 {
+    if (value == 0) return u128.Zero;
+    if (value == 1) return u128.One;
     return new u128(value);
   }
 
   @inline
   static fromBool(value: bool): u128 {
-    return new u128(<u64>value);
+    return value ? u128.One : u128.Zero;
   }
 
   @inline
@@ -125,9 +153,12 @@ export class u128 {
 
   @inline
   static fromBytes<T>(array: T, bigEndian: bool = false): u128 {
+    // @ts-ignore
     if (array instanceof u8[]) {
       return bigEndian
+        // @ts-ignore
         ? u128.fromBytesBE(<u8[]>array)
+        // @ts-ignore
         : u128.fromBytesLE(<u8[]>array);
     } else if (array instanceof Uint8Array) {
       return bigEndian
@@ -140,33 +171,41 @@ export class u128 {
 
   @inline
   static fromBytesLE(array: u8[]): u128 {
-    return u128.fromUint8ArrayLE(changetype<Uint8Array>(array));
+    if (array.length !== 16) throw new Error("Invalid length");
+    let buffer = array.dataStart;
+    return new u128(
+      load<u64>(buffer, 0),
+      load<u64>(buffer, 8)
+    );
   }
 
   @inline
   static fromBytesBE(array: u8[]): u128 {
-    return u128.fromUint8ArrayBE(changetype<Uint8Array>(array));
+    if (array.length !== 16) throw new Error("Invalid length");
+    let buffer = array.dataStart;
+    return new u128(
+      bswap<u64>(load<u64>(buffer, 8)),
+      bswap<u64>(load<u64>(buffer, 0))
+    );
   }
 
   @inline
   static fromUint8ArrayLE(array: Uint8Array): u128 {
-    assert(array.length && (array.length & 15) == 0);
-    // @ts-ignore
-    var buffer = array.dataStart;
+    if (array.length !== 16) throw new Error("Invalid length");
+    let buffer = array.dataStart;
     return new u128(
-      load<u64>(buffer, 0 * sizeof<u64>()),
-      load<u64>(buffer, 1 * sizeof<u64>())
+      load<u64>(buffer, 0),
+      load<u64>(buffer, 8)
     );
   }
 
   @inline
   static fromUint8ArrayBE(array: Uint8Array): u128 {
-    assert(array.length && (array.length & 15) == 0);
-    // @ts-ignore
-    var buffer = array.dataStart;
+    if (array.length !== 16) throw new Error("Invalid length");
+    let buffer = array.dataStart;
     return new u128(
-      bswap<u64>(load<u64>(buffer, 1 * sizeof<u64>())),
-      bswap<u64>(load<u64>(buffer, 0 * sizeof<u64>()))
+      bswap<u64>(load<u64>(buffer, 8)),
+      bswap<u64>(load<u64>(buffer, 0))
     );
   }
 
@@ -220,20 +259,22 @@ export class u128 {
 
   @inline @operator('<<')
   static shl(value: u128, shift: i32): u128 {
+    // Cache check: if shift is 0 or invalid, return existing constants if possible
     if (shift <= 0) {
-      return shift == 0 ? value.clone() : new u128();
+      return shift == 0 ? value.clone() : u128.Zero; // Use cached Zero
     }
 
     if (shift >= 128) {
-      return new u128();
+      return u128.Zero; // Use cached Zero
     }
 
+    // Unrolled shift logic
     if (shift < 64) {
       const lo = value.lo << shift;
       const hi = (value.hi << shift) | (value.lo >>> (64 - shift));
       return new u128(lo, hi);
     } else {
-      // s in [64..127]
+      // shift >= 64
       return new u128(0, value.lo << (shift - 64));
     }
   }
@@ -241,8 +282,9 @@ export class u128 {
   @inline @operator('>>')
   static shr(value: u128, shift: i32): u128 {
     shift &= 127;
-    if (shift == 0) return value;
+    if (shift == 0) return value.clone();
 
+    // Unrolled shift logic
     if (shift < 64) {
       // Shifting less than 64 bits:
       // High part is shifted right directly.
@@ -251,17 +293,8 @@ export class u128 {
       let lo = (value.hi << (64 - shift)) | (value.lo >> shift);
       return new u128(lo, hi);
     } else {
-      // Shifting 64 bits or more:
       let s = shift - 64;
-      if (s == 0) {
-        // Exactly 64 bits shift: lo = hi, hi = 0
-        return new u128(value.hi, 0);
-      } else {
-        // More than 64 bits (up to 127 bits):
-        // We discard the low part entirely and shift the high part right by s.
-        let lo = value.hi >> s;
-        return new u128(lo, 0);
-      }
+      return new u128(value.hi >> s, 0);
     }
   }
 
@@ -608,6 +641,7 @@ export class u128 {
 
   @inline
   set(value: u128): this {
+    this.checkMutable();
     this.lo = value.lo;
     this.hi = value.hi;
     return this;
@@ -615,6 +649,7 @@ export class u128 {
 
   @inline
   setI64(value: i64): this {
+    this.checkMutable();
     this.lo = value;
     this.hi = value >> 63;
     return this;
@@ -622,6 +657,7 @@ export class u128 {
 
   @inline
   setU64(value: u64): this {
+    this.checkMutable();
     this.lo = value;
     this.hi = 0;
     return this;
@@ -629,6 +665,7 @@ export class u128 {
 
   @inline
   setI32(value: i32): this {
+    this.checkMutable();
     this.lo = value;
     this.hi = value >> 63;
     return this;
@@ -636,6 +673,7 @@ export class u128 {
 
   @inline
   setU32(value: u32): this {
+    this.checkMutable();
     this.lo = value;
     this.hi = 0;
     return this;
@@ -666,6 +704,7 @@ export class u128 {
 
   @operator.prefix('++')
   preInc(): this {
+    this.checkMutable();
     var lo = this.lo;
     var lo1 = lo + 1;
     this.hi += u64(lo1 < lo);
@@ -675,6 +714,7 @@ export class u128 {
 
   @operator.prefix('--')
   preDec(): this {
+    this.checkMutable();
     var lo = this.lo;
     var lo1 = lo - 1;
     this.hi -= u64(lo1 > lo);
@@ -697,6 +737,7 @@ export class u128 {
    * @returns 128-bit unsigned integer
    */
   sqr(): this {
+    this.checkMutable();
     // Use built-in 128×128 => 128 multiplication
     // i.e. "x * x"
     let tmp = u128.mul(this, this);
