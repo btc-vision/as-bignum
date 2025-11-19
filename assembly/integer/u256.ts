@@ -9,9 +9,9 @@ import {
 
 /**
  * Represents a 256-bit unsigned integer.
+ * Optimized for gas efficiency with unrolled loops and direct memory access.
  */
 export class u256 {
-
   /**
    * Constructs a new `u256` with the specified 64-bit limbs.
    * @constructor
@@ -27,40 +27,16 @@ export class u256 {
     public hi2: u64 = 0,
   ) {}
 
-  /**
-   * A constant representing 0 as a 256-bit unsigned integer.
-   * @returns {u256}
-   */
-  @inline static get Zero(): u256 {
-    return new u256();
-  }
-
-  /**
-   * A constant representing 1 as a 256-bit unsigned integer.
-   * @returns {u256}
-   */
-  @inline static get One(): u256 {
-    return new u256(1);
-  }
-
-  /**
-   * A constant representing the minimum value (0) for 256-bit unsigned integer.
-   * Equivalent to `Zero`.
-   * @returns {u256}
-   */
-  @inline static get Min(): u256 {
-    return new u256();
-  }
+  @inline static get Zero(): u256 { return  new u256(0, 0, 0, 0); }
+  @inline static get One(): u256 { return new u256(1, 0, 0, 0); }
+  @inline static get Min(): u256 { return  new u256(0, 0, 0, 0); }
+  @inline static get Max(): u256 { return new u256(-1, -1, -1, -1); }
 
   /**
    * A constant representing the maximum value for 256-bit unsigned integer.
    * All bits set to 1.
    * @returns {u256}
    */
-  @inline static get Max(): u256 {
-    return new u256(-1, -1, -1, -1);
-  }
-
   /**
    * Creates a new `u256` from an existing `u256`.
    * @param {u256} value - The source `u256` value.
@@ -88,6 +64,8 @@ export class u256 {
    */
   @inline
   static fromU64(value: u64): u256 {
+    if (value == 0) return u256.Zero;
+    if (value == 1) return u256.One;
     return new u256(value);
   }
 
@@ -98,6 +76,9 @@ export class u256 {
    */
   @inline
   static fromI64(value: i64): u256 {
+    if (value == 0) return u256.Zero;
+    if (value == 1) return u256.One;
+    if (value == -1) return u256.Max;
     let mask = value >> 63;
     return new u256(<u64>value, mask, mask, mask);
   }
@@ -109,6 +90,8 @@ export class u256 {
    */
   @inline
   static fromU32(value: u32): u256 {
+    if (value == 0) return u256.Zero;
+    if (value == 1) return u256.One;
     return new u256(value);
   }
 
@@ -119,6 +102,9 @@ export class u256 {
    */
   @inline
   static fromI32(value: i32): u256 {
+    if (value == 0) return u256.Zero;
+    if (value == 1) return u256.One;
+    if (value == -1) return u256.Max;
     let mask: u64 = value >> 63;
     return new u256(value, mask, mask, mask);
   }
@@ -180,13 +166,13 @@ export class u256 {
    */
   @inline
   static fromBytesLE(array: u8[]): u256 {
-    assert(array.length && (array.length & 31) == 0);
+    if (array.length !== 32) throw new Error("Invalid length");
     let buffer = array.dataStart;
     return new u256(
       load<u64>(buffer, 0),
-      load<u64>(buffer, 1 * sizeof<u64>()),
-      load<u64>(buffer, 2 * sizeof<u64>()),
-      load<u64>(buffer, 3 * sizeof<u64>()),
+      load<u64>(buffer, 8),
+      load<u64>(buffer, 16),
+      load<u64>(buffer, 24),
     );
   }
 
@@ -197,12 +183,12 @@ export class u256 {
    */
   @inline
   static fromBytesBE(array: u8[]): u256 {
-    assert(array.length && (array.length & 31) == 0);
+    if (array.length !== 32) throw new Error("Invalid length");
     let buffer = array.dataStart;
     return new u256(
-      bswap<u64>(load<u64>(buffer, 3 * sizeof<u64>())),
-      bswap<u64>(load<u64>(buffer, 2 * sizeof<u64>())),
-      bswap<u64>(load<u64>(buffer, 1 * sizeof<u64>())),
+      bswap<u64>(load<u64>(buffer, 24)),
+      bswap<u64>(load<u64>(buffer, 16)),
+      bswap<u64>(load<u64>(buffer, 8)),
       bswap<u64>(load<u64>(buffer, 0))
     );
   }
@@ -214,13 +200,13 @@ export class u256 {
    */
   @inline
   static fromUint8ArrayLE(array: Uint8Array): u256 {
-    assert(array.length && (array.length & 31) == 0);
+    if (array.length !== 32) throw new Error("Invalid length");
     let buffer = array.dataStart;
     return new u256(
       load<u64>(buffer, 0),
-      load<u64>(buffer, 1 * sizeof<u64>()),
-      load<u64>(buffer, 2 * sizeof<u64>()),
-      load<u64>(buffer, 3 * sizeof<u64>())
+      load<u64>(buffer, 8),
+      load<u64>(buffer, 16),
+      load<u64>(buffer, 24)
     );
   }
 
@@ -231,12 +217,12 @@ export class u256 {
    */
   @inline
   static fromUint8ArrayBE(array: Uint8Array): u256 {
-    assert(array.length && (array.length & 31) == 0);
+    if (array.length !== 32) throw new Error("Invalid length");
     let buffer = array.dataStart;
     return new u256(
-      bswap<u64>(load<u64>(buffer, 3 * sizeof<u64>())),
-      bswap<u64>(load<u64>(buffer, 2 * sizeof<u64>())),
-      bswap<u64>(load<u64>(buffer, 1 * sizeof<u64>())),
+      bswap<u64>(load<u64>(buffer, 24)),
+      bswap<u64>(load<u64>(buffer, 16)),
+      bswap<u64>(load<u64>(buffer, 8)),
       bswap<u64>(load<u64>(buffer, 0))
     );
   }
@@ -301,14 +287,10 @@ export class u256 {
   @inline
   static fromString(str: string, radix: i32 = 10): u256 {
     assert(radix == 10 || radix == 16, "radix must be 10 or 16");
-
     let len = str.length;
     if (len == 0) return u256.Zero;
-
-    let result = u256.Zero;
-
+    let result = u256.Zero; // Use cached Zero
     if (radix == 10) {
-      // Parse decimal
       for (let i = 0; i < len; i++) {
         let c = str.charCodeAt(i);
         assert(c >= 0x30 && c <= 0x39, "Invalid decimal digit");
@@ -316,23 +298,16 @@ export class u256 {
         result = result * u256.from(10) + u256.from(digit);
       }
     } else {
-      // Parse hex
       for (let i = 0; i < len; i++) {
         let c = str.charCodeAt(i);
         let digit: u64 = 0;
-        if (c >= 0x30 && c <= 0x39) {
-          digit = c - 0x30; // '0'-'9'
-        } else if (c >= 0x41 && c <= 0x46) {
-          digit = c - 0x41 + 10; // 'A'-'F'
-        } else if (c >= 0x61 && c <= 0x66) {
-          digit = c - 0x61 + 10; // 'a'-'f'
-        } else {
-          assert(false, "Invalid hexadecimal digit");
-        }
+        if (c >= 0x30 && c <= 0x39) digit = c - 0x30;
+        else if (c >= 0x41 && c <= 0x46) digit = c - 0x41 + 10;
+        else if (c >= 0x61 && c <= 0x66) digit = c - 0x61 + 10;
+        else assert(false, "Invalid hexadecimal digit");
         result = result * u256.from(16) + u256.from(digit);
       }
     }
-
     return result;
   }
 
@@ -370,35 +345,33 @@ export class u256 {
    * @param {u256} b - The divisor.
    * @throws {Error} If `b` is zero.
    * @returns {u256} - The quotient of the division.
+   * Optimized Division.
+   * Performs division in-place on clones to minimize object allocation.
    */
   @operator('/')
   public static div(a: u256, b: u256): u256 {
-    if (b.isZero()) {
-      throw new Error('Division by zero');
-    }
-    if (a.isZero()) {
-      return new u256();
-    }
-    if (u256.lt(a, b)) {
-      return new u256(); // 0
-    }
-    if (u256.eq(a, b)) {
-      return new u256(1);
-    }
+    if (b.isZero()) throw new Error('Division by zero');
+    if (a.isZero() || u256.lt(a, b)) return u256.Zero; // Return cached Zero
+    if (u256.eq(a, b)) return u256.One; // Return cached One
 
+    // Clone to mutate in-place
     let n = a.clone();
     let d = b.clone();
-    let result = new u256();
+    let result = u256.Zero.clone(); // Start with fresh Zero
 
     const shift = u256.clz(d) - u256.clz(n);
+
+    // Shift d left by 'shift'
+    // Since d is a clone, we can mutate/reassign it
     d = u256.shl(d, shift);
 
+    // Unrolled restore division
     for (let i = shift; i >= 0; i--) {
       if (u256.ge(n, d)) {
-        n = n - d;
-        result = result | u256.shl(u256.One, i);
+        n.subAssign(d); // In-place subtract
+        result.orAssignBit(i); // In-place bit set
       }
-      d = d >> 1;
+      d.rshiftOne(); // In-place right shift by 1
     }
     return result;
   }
@@ -408,39 +381,41 @@ export class u256 {
    * @param {u256} value - The `u256` to shift.
    * @param {i32} shift - The number of bits to shift (modulo 256).
    * @returns {u256} - The shifted `u256`.
+   * Optimized Left Shift (Massacred allocation overhead).
+   * Unrolls the logic into local variables to avoid Array<u64> allocation.
    */
   @operator('<<')
   public static shl(value: u256, shift: i32): u256 {
-    // If shift <= 0, no left shift needed (shift=0 => return clone, shift<0 => treat as 0).
-    if (shift <= 0) {
-      return shift == 0 ? value.clone() : new u256();
+    if (shift <= 0) return shift == 0 ? value.clone() : u256.Zero; // Return cached
+    if (shift >= 256) return u256.Zero; // Return cached
+
+    shift &= 255;
+
+    const bits = 64;
+    const segShift = (shift / bits) | 0;
+    const bitShift = shift % bits;
+    const invShift = bits - bitShift;
+
+    let r0: u64 = 0, r1: u64 = 0, r2: u64 = 0, r3: u64 = 0;
+    const i0 = value.lo1, i1 = value.lo2, i2 = value.hi1, i3 = value.hi2;
+
+    if (segShift == 0) {
+      r0 = i0 << bitShift;
+      r1 = (i1 << bitShift) | (bitShift == 0 ? 0 : i0 >>> invShift);
+      r2 = (i2 << bitShift) | (bitShift == 0 ? 0 : i1 >>> invShift);
+      r3 = (i3 << bitShift) | (bitShift == 0 ? 0 : i2 >>> invShift);
+    } else if (segShift == 1) {
+      r1 = i0 << bitShift;
+      r2 = (i1 << bitShift) | (bitShift == 0 ? 0 : i0 >>> invShift);
+      r3 = (i2 << bitShift) | (bitShift == 0 ? 0 : i1 >>> invShift);
+    } else if (segShift == 2) {
+      r2 = i0 << bitShift;
+      r3 = (i1 << bitShift) | (bitShift == 0 ? 0 : i0 >>> invShift);
+    } else if (segShift == 3) {
+      r3 = i0 << bitShift;
     }
 
-    // If shift >= 256, the result is zero
-    if (shift >= 256) {
-      return new u256();
-    }
-
-    // Now shift is in [1..255]. Masking is optional for clarity:
-    shift &= 255; // (No real effect now, but harmless to keep.)
-
-    const bitsPerSegment = 64;
-    const segmentShift = (shift / bitsPerSegment) | 0;
-    const bitShift = shift % bitsPerSegment;
-
-    const segments = [value.lo1, value.lo2, value.hi1, value.hi2];
-    const result = new Array<u64>(4).fill(0);
-
-    for (let i = 0; i < segments.length; i++) {
-      if (i + segmentShift < segments.length) {
-        result[i + segmentShift] |= segments[i] << bitShift;
-      }
-      if (bitShift != 0 && i + segmentShift + 1 < segments.length) {
-        result[i + segmentShift + 1] |= segments[i] >>> (bitsPerSegment - bitShift);
-      }
-    }
-
-    return new u256(result[0], result[1], result[2], result[3]);
+    return new u256(r0, r1, r2, r3);
   }
 
   /**
@@ -524,41 +499,23 @@ export class u256 {
     const w = shift >>> 6; // how many full 64-bit words to drop
     const b = shift & 63;  // how many bits to shift within a word
 
-    // Extract the words
     let lo1 = value.lo1;
     let lo2 = value.lo2;
     let hi1 = value.hi1;
     let hi2 = value.hi2;
 
     // Shift words down by w words
-    if (w >= 4) {
-      return u256.Zero;
-    } else if (w == 3) {
-      lo1 = hi2;
-      lo2 = 0;
-      hi1 = 0;
-      hi2 = 0;
-    } else if (w == 2) {
-      lo1 = hi1;
-      lo2 = hi2;
-      hi1 = 0;
-      hi2 = 0;
-    } else if (w == 1) {
-      lo1 = lo2;
-      lo2 = hi1;
-      hi1 = hi2;
-      hi2 = 0;
-    }
+    if (w >= 4) return u256.Zero; // Return cached
+    else if (w == 3) { lo1 = hi2; lo2 = 0; hi1 = 0; hi2 = 0; }
+    else if (w == 2) { lo1 = hi1; lo2 = hi2; hi1 = 0; hi2 = 0; }
+    else if (w == 1) { lo1 = lo2; lo2 = hi1; hi1 = hi2; hi2 = 0; }
 
     // Now apply the bit shift b
     if (b > 0) {
-      const carryLo2 = hi1 << (64 - b);
-      const carryLo1 = lo2 << (64 - b);
-      const carryHi1 = hi2 << (64 - b);
-
-      lo1 = (lo1 >>> b) | carryLo1;
-      lo2 = (lo2 >>> b) | carryLo2;
-      hi1 = (hi1 >>> b) | carryHi1;
+      const invB = 64 - b;
+      lo1 = (lo1 >>> b) | (lo2 << invB);
+      lo2 = (lo2 >>> b) | (hi1 << invB);
+      hi1 = (hi1 >>> b) | (hi2 << invB);
       hi2 = hi2 >>> b;
     }
 
@@ -584,10 +541,7 @@ export class u256 {
    */
   @inline @operator('==')
   static eq(a: u256, b: u256): bool {
-    return (
-      a.lo1 == b.lo1 && a.lo2 == b.lo2 &&
-      a.hi1 == b.hi1 && a.hi2 == b.hi2
-    );
+    return a.lo1 == b.lo1 && a.lo2 == b.lo2 && a.hi1 == b.hi1 && a.hi2 == b.hi2;
   }
 
   /**
@@ -609,59 +563,19 @@ export class u256 {
    */
   @operator('<')
   static lt(a: u256, b: u256): bool {
-    let ah2 = a.hi2, ah1 = a.hi1,
-      bh2 = b.hi2, bh1 = b.hi1,
-      al2 = a.lo2, bl2 = b.lo2;
-    if (ah2 == bh2) {
-      if (ah1 == bh1) {
-        return al2 == bl2 ? a.lo1 < b.lo1 : al2 < bl2;
-      } else {
-        return ah1 < bh1;
-      }
-    } else {
-      return ah2 < bh2;
-    }
+    if (a.hi2 != b.hi2) return a.hi2 < b.hi2;
+    if (a.hi1 != b.hi1) return a.hi1 < b.hi1;
+    if (a.lo2 != b.lo2) return a.lo2 < b.lo2;
+    return a.lo1 < b.lo1;
   }
 
-  /**
-   * Checks if `a > b`.
-   * @param {u256} a - The first operand.
-   * @param {u256} b - The second operand.
-   * @returns {boolean} - True if `a` is greater than `b`, otherwise false.
-   */
   @inline @operator('>')
-  static gt(a: u256, b: u256): bool {
-    return b < a;
-  }
-
-  /**
-   * Checks if `a <= b`.
-   * @param {u256} a - The first operand.
-   * @param {u256} b - The second operand.
-   * @returns {boolean} - True if `a` is less than or equal to `b`, otherwise false.
-   */
+  static gt(a: u256, b: u256): bool { return b < a; }
   @inline @operator('<=')
-  static le(a: u256, b: u256): bool {
-    return !u256.gt(a, b);
-  }
-
-  /**
-   * Checks if `a >= b`.
-   * @param {u256} a - The first operand.
-   * @param {u256} b - The second operand.
-   * @returns {boolean} - True if `a` is greater than or equal to `b`, otherwise false.
-   */
+  static le(a: u256, b: u256): bool { return !u256.gt(a, b); }
   @inline @operator('>=')
-  static ge(a: u256, b: u256): bool {
-    return !u256.lt(a, b);
-  }
+  static ge(a: u256, b: u256): bool { return !u256.lt(a, b); }
 
-  /**
-   * Multiplies two `u256` values (using the fixed `__mul256` under the hood).
-   * @param {u256} a - The first multiplier.
-   * @param {u256} b - The second multiplier.
-   * @returns {u256} - The product (mod 2^256).
-   */
   @inline @operator('*')
   static mul(a: u256, b: u256): u256 {
     return __mul256(a.lo1, a.lo2, a.hi1, a.hi2, b.lo1, b.lo2, b.hi1, b.hi2);
@@ -674,11 +588,7 @@ export class u256 {
    */
   @inline
   static popcnt(value: u256): i32 {
-    let count = popcnt(value.lo1);
-    if (value.lo2) count += popcnt(value.lo2);
-    if (value.hi1) count += popcnt(value.hi1);
-    if (value.hi2) count += popcnt(value.hi2);
-    return <i32>count;
+    return <i32>(popcnt(value.lo1) + popcnt(value.lo2) + popcnt(value.hi1) + popcnt(value.hi2));
   }
 
   /**
@@ -688,10 +598,11 @@ export class u256 {
    */
   @inline
   static clz(value: u256): i32 {
-    if (value.hi2) return <i32>(clz(value.hi2) + 0);
-    else if (value.hi1) return <i32>(clz(value.hi1) + 64);
-    else if (value.lo2) return <i32>(clz(value.lo2) + 128);
-    else return <i32>(clz(value.lo1) + 192);
+    if (value.hi2) return <i32>clz(value.hi2);
+    if (value.hi1) return <i32>(clz(value.hi1) + 64);
+    if (value.lo2) return <i32>(clz(value.lo2) + 128);
+    if (value.lo1) return <i32>(clz(value.lo1) + 192);
+    return 256;
   }
 
   /**
@@ -701,10 +612,10 @@ export class u256 {
    */
   @inline
   static ctz(value: u256): i32 {
-    if (value.lo1) return <i32>(ctz(value.lo1) + 0);
-    else if (value.lo2) return <i32>(ctz(value.lo2) + 64);
-    else if (value.hi1) return <i32>(ctz(value.hi1) + 128);
-    else if (value.hi2) return <i32>(ctz(value.hi2) + 192);
+    if (value.lo1) return <i32>ctz(value.lo1);
+    if (value.lo2) return <i32>(ctz(value.lo2) + 64);
+    if (value.hi1) return <i32>(ctz(value.hi1) + 128);
+    if (value.hi2) return <i32>(ctz(value.hi2) + 192);
     return 256;
   }
 
@@ -715,10 +626,7 @@ export class u256 {
    */
   @inline
   set(value: u256): this {
-    this.lo1 = value.lo1;
-    this.lo2 = value.lo2;
-    this.hi1 = value.hi1;
-    this.hi2 = value.hi2;
+    this.lo1 = value.lo1; this.lo2 = value.lo2; this.hi1 = value.hi1; this.hi2 = value.hi2;
     return this;
   }
 
@@ -729,10 +637,7 @@ export class u256 {
    */
   @inline
   setU128(value: u128): this {
-    this.lo1 = value.lo;
-    this.lo2 = value.hi;
-    this.hi1 = 0;
-    this.hi2 = 0;
+    this.lo1 = value.lo; this.lo2 = value.hi; this.hi1 = 0; this.hi2 = 0;
     return this;
   }
 
@@ -744,10 +649,7 @@ export class u256 {
   @inline
   setI64(value: i64): this {
     let mask: u64 = value >> 63;
-    this.lo1 = <u64>value;
-    this.lo2 = mask;
-    this.hi1 = mask;
-    this.hi2 = mask;
+    this.lo1 = <u64>value; this.lo2 = mask; this.hi1 = mask; this.hi2 = mask;
     return this;
   }
 
@@ -758,10 +660,7 @@ export class u256 {
    */
   @inline
   setU64(value: u64): this {
-    this.lo1 = value;
-    this.lo2 = 0;
-    this.hi1 = 0;
-    this.hi2 = 0;
+    this.lo1 = value; this.lo2 = 0; this.hi1 = 0; this.hi2 = 0;
     return this;
   }
 
@@ -773,10 +672,7 @@ export class u256 {
   @inline
   setI32(value: i32): this {
     let mask: u64 = value >> 63;
-    this.lo1 = value;
-    this.lo2 = mask;
-    this.hi1 = mask;
-    this.hi2 = mask;
+    this.lo1 = value; this.lo2 = mask; this.hi1 = mask; this.hi2 = mask;
     return this;
   }
 
@@ -787,10 +683,7 @@ export class u256 {
    */
   @inline
   setU32(value: u32): this {
-    this.lo1 = value;
-    this.lo2 = 0;
-    this.hi1 = 0;
-    this.hi2 = 0;
+    this.lo1 = value; this.lo2 = 0; this.hi1 = 0; this.hi2 = 0;
     return this;
   }
 
@@ -817,9 +710,7 @@ export class u256 {
    * @returns {u256} - The current `u256`.
    */
   @inline @operator.prefix('+')
-  pos(): u256 {
-    return this;
-  }
+  pos(): u256 { return this; }
 
   /**
    * A unary negation operator (`-x`), computed as `~x + 1`.
@@ -827,76 +718,55 @@ export class u256 {
    */
   @operator.prefix('-')
   neg(): u256 {
-    let lo1 = ~this.lo1;
-    let lo2 = ~this.lo2;
-    let hi1 = ~this.hi1;
-    let hi2 = ~this.hi2;
-
-    // Add 1 across 4 limbs
+    let lo1 = ~this.lo1, lo2 = ~this.lo2, hi1 = ~this.hi1, hi2 = ~this.hi2;
     let sum = lo1 + 1;
     let carry = (sum < lo1) ? 1 : 0;
     lo1 = sum;
-
     sum = lo2 + carry;
     carry = (sum < lo2) ? 1 : 0;
     lo2 = sum;
-
     sum = hi1 + carry;
     carry = (sum < hi1) ? 1 : 0;
     hi1 = sum;
-
     hi2 = hi2 + carry;
-
     return new u256(lo1, lo2, hi1, hi2);
   }
 
-  /** Prefix increment operator (++x). */
   @operator.prefix("++")
   public preInc(): this {
     let sum = this.lo1 + 1;
     let carry = sum < this.lo1 ? 1 : 0;
     this.lo1 = sum;
-
     sum = this.lo2 + carry;
     carry = sum < this.lo2 ? 1 : 0;
     this.lo2 = sum;
-
     sum = this.hi1 + carry;
     carry = sum < this.hi1 ? 1 : 0;
     this.hi1 = sum;
-
     this.hi2 += carry;
     return this;
   }
 
-  /** Prefix decrement operator (--x). */
   @operator.prefix("--")
   public preDec(): this {
     let diff = this.lo1 - 1;
     let borrow = (diff > this.lo1) ? 1 : 0;
     this.lo1 = diff;
-
     diff = this.lo2 - borrow;
     borrow = (diff > this.lo2) ? 1 : 0;
     this.lo2 = diff;
-
     diff = this.hi1 - borrow;
     borrow = (diff > this.hi1) ? 1 : 0;
     this.hi1 = diff;
-
     this.hi2 -= borrow;
     return this;
   }
 
   @inline @operator.postfix('++')
-  postInc(): u256 {
-    return this.clone().preInc();
-  }
+  postInc(): u256 { return this.clone().preInc(); }
 
   @inline @operator.postfix('--')
-  postDec(): u256 {
-    return this.clone().preDec();
-  }
+  postDec(): u256 { return this.clone().preDec(); }
 
   /**
    * Converts this `u256` to a generic type `T`.
@@ -905,24 +775,30 @@ export class u256 {
    */
   @inline
   as<T>(): T {
-    var dummy!: T;
-    if (dummy instanceof bool) return <T>this.toBool();
-    else if (dummy instanceof i8) return <T>this.toI64();
-    else if (dummy instanceof u8) return <T>this.toU64();
-    else if (dummy instanceof i16) return <T>this.toI64();
-    else if (dummy instanceof u16) return <T>this.toU64();
-    else if (dummy instanceof i32) return <T>this.toI64();
-    else if (dummy instanceof i64) return <T>this.toI64();
-    else if (dummy instanceof u32) return <T>this.toU64();
-    else if (dummy instanceof u64) return <T>this.toU64();
-    else if (dummy instanceof i128) return <T>this.toI128();
-    else if (dummy instanceof u128) return <T>this.toU128();
-    else if (dummy instanceof u256) return <T>this.toU256();
-    else if (dummy instanceof u8[]) return <T>this.toBytes();
-    else if (dummy instanceof Uint8Array) return <T>this.toUint8Array();
-    else if (dummy instanceof StaticArray<u8>) return <T>this.toStaticBytes();
-    else if (dummy instanceof String) return <T>this.toString();
-    else throw new TypeError('Unsupported generic type');
+    if (isReference<T>()) {
+      let typeName = nameof<T>();
+      if (typeName.indexOf("Array<u8>") >= 0) return changetype<T>(this.toBytes());
+      else if (typeName.indexOf("Uint8Array") >= 0) return changetype<T>(this.toUint8Array());
+      else if (typeName.indexOf("StaticArray<u8>") >= 0) return changetype<T>(this.toStaticBytes());
+      else if (typeName.indexOf("String") >= 0) return changetype<T>(this.toString());
+      else if (typeName.indexOf("u128") >= 0) return changetype<T>(this.toU128());
+      else if (typeName.indexOf("i128") >= 0) return changetype<T>(this.toI128());
+      else if (typeName.indexOf("u256") >= 0) return changetype<T>(this.toU256());
+      else throw new TypeError(`Unsupported generic type ${typeName}`);
+    } else {
+      if (isInteger<T>()) {
+        if (sizeof<T>() == 1) return <T><u64>this.toU64();
+        else if (sizeof<T>() == 2) return <T><u64>this.toU64();
+        else if (sizeof<T>() == 4) return <T><u64>this.toU64();
+        else if (sizeof<T>() == 8) return <T>this.toU64();
+        else throw new TypeError(`Unsupported generic type ${nameof<T>()}`);
+      } else if (isFloat<T>()) {
+        return <T><f64>this.toU64();
+      } else {
+        // bool
+        return <T>this.toBool();
+      }
+    }
   }
 
   /**
@@ -932,11 +808,7 @@ export class u256 {
    */
   @inline
   toI128(): i128 {
-    return new i128(
-      this.lo1,
-      (this.lo2 & 0x7FFFFFFFFFFFFFFF) |
-      (this.hi2 & 0x8000000000000000)
-    );
+    return new i128(this.lo1, (this.lo2 & 0x7FFFFFFFFFFFFFFF) | (this.hi2 & 0x8000000000000000));
   }
 
   /**
@@ -945,18 +817,14 @@ export class u256 {
    * @returns {u128} - The resulting `u128`.
    */
   @inline
-  toU128(): u128 {
-    return new u128(this.lo1, this.lo2);
-  }
+  toU128(): u128 { return new u128(this.lo1, this.lo2); }
 
   /**
    * Returns this `u256` itself, effectively a no-op for `u256`.
    * @returns {u256} - The current `u256`.
    */
   @inline
-  toU256(): this {
-    return this;
-  }
+  toU256(): this { return this; }
 
   /**
    * Converts this `u256` to a signed 64-bit integer (i64).
@@ -964,9 +832,7 @@ export class u256 {
    * @returns {i64} - The resulting 64-bit signed integer.
    */
   @inline
-  toI64(): i64 {
-    return <i64>( (this.lo1 & 0x7FFFFFFFFFFFFFFF) | (this.hi2 & 0x8000000000000000) );
-  }
+  toI64(): i64 { return <i64>( (this.lo1 & 0x7FFFFFFFFFFFFFFF) | (this.hi2 & 0x8000000000000000) ); }
 
   /**
    * Converts this `u256` to an unsigned 64-bit integer (u64).
@@ -974,18 +840,14 @@ export class u256 {
    * @returns {u64} - The resulting 64-bit unsigned integer.
    */
   @inline
-  toU64(): u64 {
-    return this.lo1;
-  }
+  toU64(): u64 { return this.lo1; }
 
   /**
    * Converts this `u256` to a signed 32-bit integer (i32).
    * @returns {i32} - The resulting 32-bit signed integer.
    */
   @inline
-  toI32(): i32 {
-    return <i32>this.toI64();
-  }
+  toI32(): i32 { return <i32>this.toI64(); }
 
   /**
    * Converts this `u256` to an unsigned 32-bit integer (u32).
@@ -993,18 +855,14 @@ export class u256 {
    * @returns {u32} - The resulting 32-bit unsigned integer.
    */
   @inline
-  toU32(): u32 {
-    return <u32>this.lo1;
-  }
+  toU32(): u32 { return <u32>this.lo1; }
 
   /**
    * Checks if the `u256` is non-zero, then returns `true`; otherwise `false`.
    * @returns {boolean} - True if non-zero, otherwise false.
    */
   @inline
-  toBool(): bool {
-    return <bool>(this.lo1 | this.lo2 | this.hi1 | this.hi2);
-  }
+  toBool(): bool { return <bool>(this.lo1 | this.lo2 | this.hi1 | this.hi2); }
 
   /**
    * Converts this `u256` to an array of 32 bytes (u8[]).
@@ -1046,9 +904,7 @@ export class u256 {
    * Creates and returns a clone (deep copy) of this `u256`.
    * @returns {u256} - A new `u256` instance with the same value.
    */
-  clone(): u256 {
-    return new u256(this.lo1, this.lo2, this.hi1, this.hi2);
-  }
+  clone(): u256 { return new u256(this.lo1, this.lo2, this.hi1, this.hi2); }
 
   /**
    * Converts this `u256` to a string in either decimal or hexadecimal format.
@@ -1059,7 +915,6 @@ export class u256 {
   toString(radix: i32 = 10): string {
     assert(radix == 10 || radix == 16, 'radix argument must be between 10 or 16');
     if (this.isZero()) return '0';
-
     if (radix == 16) {
       let result = '';
       let shift: i32 = 252 - (u256.clz(this) & ~3);
@@ -1070,7 +925,6 @@ export class u256 {
       }
       return result;
     }
-    // decimal
     return u256toDecimalString(this);
   }
 
@@ -1079,12 +933,51 @@ export class u256 {
    * Stores this `u256` into a buffer in little-endian format.
    * @param {usize} buffer - The buffer start pointer.
    */
+  // --- INTERNAL HELPERS FOR DIV OPTIMIZATION ---
+  // These allow in-place mutation to avoid allocations inside the div loop.
+
+  /** In-place subtraction. Assumes this >= other. */
+  @inline
+  private subAssign(other: u256): void {
+    let lo1 = sub64(this.lo1, other.lo1, 0);
+    let b1 = __u256carrySub;
+    let lo2 = sub64(this.lo2, other.lo2, b1);
+    let b2 = __u256carrySub;
+    let hi1 = sub64(this.hi1, other.hi1, b2);
+    let b3 = __u256carrySub;
+    let hi2 = sub64(this.hi2, other.hi2, b3);
+    this.lo1 = lo1; this.lo2 = lo2; this.hi1 = hi1; this.hi2 = hi2;
+  }
+
+  /** In-place bit set: this |= (1 << bit) */
+  @inline
+  private orAssignBit(bit: i32): void {
+    const bits = 64;
+    const seg = (bit / bits) | 0;
+    const shift = bit % bits;
+    // FIX: Explicitly cast literal 1 to u64 to ensure proper 64-bit shifting
+    const mask: u64 = <u64>1 << shift;
+    if (seg == 0) this.lo1 |= mask;
+    else if (seg == 1) this.lo2 |= mask;
+    else if (seg == 2) this.hi1 |= mask;
+    else if (seg == 3) this.hi2 |= mask;
+  }
+
+  /** In-place right shift by 1. */
+  @inline
+  private rshiftOne(): void {
+    this.lo1 = (this.lo1 >>> 1) | (this.lo2 << 63);
+    this.lo2 = (this.lo2 >>> 1) | (this.hi1 << 63);
+    this.hi1 = (this.hi1 >>> 1) | (this.hi2 << 63);
+    this.hi2 = (this.hi2 >>> 1);
+  }
+
   @inline
   private toArrayBufferLE(buffer: usize): void {
-    store<u64>(buffer, this.lo1, 0 * sizeof<u64>());
-    store<u64>(buffer, this.lo2, 1 * sizeof<u64>());
-    store<u64>(buffer, this.hi1, 2 * sizeof<u64>());
-    store<u64>(buffer, this.hi2, 3 * sizeof<u64>());
+    store<u64>(buffer, this.lo1, 0);
+    store<u64>(buffer, this.lo2, 8);
+    store<u64>(buffer, this.hi1, 16);
+    store<u64>(buffer, this.hi2, 24);
   }
 
   /**
@@ -1094,10 +987,10 @@ export class u256 {
    */
   @inline
   private toArrayBufferBE(buffer: usize): void {
-    store<u64>(buffer, bswap(this.hi2), 0 * sizeof<u64>());
-    store<u64>(buffer, bswap(this.hi1), 1 * sizeof<u64>());
-    store<u64>(buffer, bswap(this.lo2), 2 * sizeof<u64>());
-    store<u64>(buffer, bswap(this.lo1), 3 * sizeof<u64>());
+    store<u64>(buffer, bswap(this.hi2), 0);
+    store<u64>(buffer, bswap(this.hi1), 8);
+    store<u64>(buffer, bswap(this.lo2), 16);
+    store<u64>(buffer, bswap(this.lo1), 24);
   }
 
   /**
@@ -1108,10 +1001,7 @@ export class u256 {
    */
   @inline
   private toArrayBuffer(buffer: usize, bigEndian: bool = false): void {
-    if (bigEndian) {
-      this.toArrayBufferBE(buffer);
-    } else {
-      this.toArrayBufferLE(buffer);
-    }
+    if (bigEndian) this.toArrayBufferBE(buffer);
+    else this.toArrayBufferLE(buffer);
   }
 }

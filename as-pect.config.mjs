@@ -2,6 +2,7 @@ export default {
   /**
    * A set of globs passed to the glob package that qualify typescript files for testing.
    */
+  //entries: ["assembly/__tests__/**/global.spec.ts", "assembly/__tests__/**/u256_complement.spec.ts", "assembly/__tests__/**/u256_2.spec.ts"],
   entries: ["assembly/__tests__/**/*.spec.ts"],
   /**
    * A set of globs passed to the glob package that quality files to be added to each test.
@@ -15,10 +16,10 @@ export default {
    * Add your required AssemblyScript imports here.
    */
   async instantiate(memory, createImports, instantiate, binary) {
-    return instantiate(binary, createImports({ env: { memory } }));
+    return instantiate(binary, createImports({env: {memory}}));
   },
   /** Enable code coverage. */
-  // coverage: ["assembly/**/*.ts"],
+  coverage: ["assembly/**/*.ts"],
   /**
    * Specify if the binary wasm file should be written to the file system.
    */

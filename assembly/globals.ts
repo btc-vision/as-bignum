@@ -1,6 +1,5 @@
-import { u128, u256 } from './integer';
+import { u128, u256 } from "./integer";
 
-// used for returning quotient and reminder from __divmod128
 @lazy export var __divmod_quot_hi: u64 = 0;
 @lazy export var __divmod_rem_lo: u64 = 0;
 @lazy export var __divmod_rem_hi: u64 = 0;
@@ -265,8 +264,14 @@ export function __floatuntfdi(value: f64): u64 {
       lo = m << u;
       hi = m >> (64 - u);
     }
-    __res128_hi = ~hi;
-    return ~lo;
+    // Convert to 2's complement for correct negative representation
+    lo = ~lo;
+    hi = ~hi;
+    lo += 1;
+    if (lo == 0) hi += 1; // carry to high part
+
+    __res128_hi = hi;
+    return lo;
     // } else if (value < 9.2233720368547e18) { // 2^63-1 // for i128
   } else if (value < reinterpret<f64>(0x43F0000000000000)) { // 2^64-1
     // __float_u128_hi = (value < 0) ? -1 : 0; // for int
@@ -380,7 +385,7 @@ function ctz64(x: u64): i32 {
  * Count leading zeros in a 128-bit integer [hi:lo], returning i32 in [0..128].
  * If both hi and lo are 0, returns 128.
  *
- *   hi is signed in i128, but we interpret it as unsigned here.
+ * hi is signed in i128, but we interpret it as unsigned here.
  */
 // @ts-ignore: decorator
 @global @inline
@@ -399,8 +404,8 @@ export function __clz128(lo: u64, hi: i64): i32 {
  * Count trailing zeros in a 128-bit integer [hi:lo], returning i32 in [0..128].
  * If both hi and lo are 0, returns 128.
  *
- *   For i128 we typically treat hi as signed, but ctz is purely bitwise, so we
- *   can pass it as u64 as well.
+ * For i128 we typically treat hi as signed, but ctz is purely bitwise, so we
+ * can pass it as u64 as well.
  */
 // @ts-ignore: decorator
 @global @inline
@@ -451,14 +456,6 @@ export function __udivmod128(alo: u64, ahi: u64, blo: u64, bhi: u64): u64 {
     return 1;
   }
 
-  // if (btz + bzn == 127) {
-  //   // TODO
-  //   // __divmod_quot = a >> btz
-  //   // b++
-  //   // __divmod_rem = a & b
-  //   return;
-  // }
-
   if (!(ahi | bhi)) {
     __divmod_quot_hi = 0;
     __divmod_rem_hi = 0;
@@ -472,122 +469,78 @@ export function __udivmod128(alo: u64, ahi: u64, blo: u64, bhi: u64): u64 {
       return dlo;
     }
   }
-
-  // if b.lo == 0 and `b.hi` is power of two
-  // if (!blo && !(bhi & (bhi - 1))) {
-  //   __divmod_rem = 0;
-
-  //   // TODO
-
-  //   return 0;
-  // }
-
-  // var diff: i64 = ahi - bhi;
-  // var cmp = <i32>(diff != 0 ? diff : alo - blo); // TODO optimize this
-
-  // if (cmp <= 0) {
-  //   __divmod_quot_hi = 0;
-  //   __divmod_rem     = 0;
-  //   return u64(cmp == 0);
-  // }
-
-  // if (bzn - azn <= 5) {
-  //   // TODO
-  //   // fast path
-  //   return __udivmod128core(alo, ahi, blo, bhi);
-  // }
   return __udivmod128core(alo, ahi, blo, bhi);
 }
 
 function __udivmod128core(alo: u64, ahi: u64, blo: u64, bhi: u64): u64 {
-  var a = new u128(alo, ahi);
-  var b = new u128(blo, bhi);
-  // get leading zeros for left alignment
-  var alz = __clz128(alo, ahi);
-  var blz = __clz128(blo, bhi);
-  var off = blz - alz;
-  var nb = b << off;
-  var q = u128.Zero;
-  var n = a.clone();
+  var r = new u128(alo, ahi);
+  var d = new u128(blo, bhi);
+  var q = new u128(0, 0);
 
-  // create a mask with the length of b
-  var mask = u128.One;
-  mask <<= 128 - blz;
-  --mask;
-  mask <<= off;
+  // Standard division by shifting
+  var leadingZeros = __clz128(blo, bhi) - __clz128(alo, ahi);
 
-  var i = 0;
-  while (n >= b) {
-    ++i;
-    q <<= 1;
-    if ((n & mask) >= nb) {
-      ++q;
-      n -= nb;
-    }
-
-    mask |= mask >> 1;
-    nb >>= 1;
-  }
-  q <<= (blz - alz - i + 1);
-
-  __divmod_quot_hi = q.hi;
-  __divmod_rem_lo = n.lo;
-  __divmod_rem_hi = n.hi;
-  return q.lo;
-}
-
-// @ts-ignore: decorator
-@global
-export function __udivmod128_10(lo: u64, hi: u64): u64 {
-  // Shortcut for small hi == 0
-  if (!hi) {
+  if (leadingZeros < 0) {
     __divmod_quot_hi = 0;
-    // For values < 10, remainder is the value itself, quotient is 0
-    if (lo < 10) {
-      __divmod_rem_lo = lo;    // <--- fix: store the actual remainder
-      __divmod_rem_hi = 0;
-      return 0;               // quotient is 0
-    } else {
-      // For larger lo, do a normal 64-bit / 10
-      let qlo = lo / 10;
-      __divmod_rem_lo = lo - qlo * 10;  // remainder = lo % 10
-      __divmod_rem_hi = 0;
-      return qlo;                      // quotient
-    }
+    __divmod_rem_lo = alo;
+    __divmod_rem_hi = ahi;
+    return 0;
   }
 
-  // For hi != 0, we do an approximate approach:
-  var q: u128, r: u128;
-  var n = new u128(lo, hi);
+  var dShift = u128.shl(d, leadingZeros);
 
-  // approximate quotient 'q' via shifting
-  q = n >> 1;
-  q += n >> 2;
-  q += q >> 4;
-  q += q >> 8;
-  q += q >> 16;
-  q += q >> 32;
-  // extra shift from q.hi
-  q += u128.fromU64(q.hi);
-  q >>= 3;
-
-  // remainder r = n - (q * 10)
-  // We do: (q << 2) + q == q * 5 => then << 1 => q * 10
-  r = n - (((q << 2) + q) << 1);
-
-  // If remainder >= 10, we must increment quotient and subtract 10 from remainder.
-  if (r.lo > 9 || r.hi != 0) {
-    q = q + u128.One;   // q++
-    // subtract 10 from remainder
-    let oldLo = r.lo;
-    r.lo -= 10;
-    // If underflow occurs (r.lo > oldLo) we’d borrow from r.hi
-    let borrow = (r.lo > oldLo) ? 1 : 0;
-    r.hi -= borrow;
+  for (let i = 0; i <= leadingZeros; i++) {
+    q = u128.shl(q, 1);
+    if (r >= dShift) {
+      r -= dShift;
+      q = u128.add(q, u128.One);
+    }
+    dShift = u128.shr(dShift, 1);
   }
 
   __divmod_quot_hi = q.hi;
   __divmod_rem_lo = r.lo;
   __divmod_rem_hi = r.hi;
   return q.lo;
+}
+
+// @ts-ignore: decorator
+@global
+export function __udivmod128_10(lo: u64, hi: u64): u64 {
+  if (hi == 0) {
+    __divmod_quot_hi = 0;
+    let q = lo / 10;
+    __divmod_rem_lo = lo - (q * 10);
+    __divmod_rem_hi = 0;
+    return q;
+  }
+
+  // High part division
+  let q_hi = hi / 10;
+  let r_hi = hi - (q_hi * 10);
+
+  // Low part chunking to avoid 128-bit math
+  // r_hi becomes the high bits for the next division
+  let lo_hi = lo >>> 32;
+  let lo_lo = lo & 0xFFFFFFFF;
+
+  // Divide upper half of lo (plus carry from hi)
+  let t1 = (r_hi << 32) | lo_hi;
+  let q1 = t1 / 10;
+  let r1 = t1 - (q1 * 10);
+
+  // Divide lower half of lo (plus carry from above)
+  let t2 = (r1 << 32) | lo_lo;
+  let q2 = t2 / 10;
+  let r2 = t2 - (q2 * 10);
+
+  // Reassemble quotient
+  // q1 is known to fit in 32 bits because max t1 < 10 * 2^32
+  let q_lo = (q1 << 32) | q2;
+
+  __divmod_quot_hi = q_hi;
+  __divmod_rem_lo = r2;
+  __divmod_rem_hi = 0;
+
+  return q_lo;
 }
