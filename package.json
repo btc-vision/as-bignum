@@ -1,6 +1,6 @@
 {
   "name": "@btc-vision/as-bignum",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "128 and 256 bits integer and fixed point arithmetics for AssemblyScript. Also support checking overflow/underflow",
   "main": "assembly/index.ts",
   "types": "assembly/index.ts",
@@ -37,11 +37,10 @@
     "@btc-vision/as-pect-assembly": "^8.2.0",
     "@btc-vision/as-pect-cli": "^8.2.0",
     "@btc-vision/as-pect-transform": "^8.2.0",
-    "@btc-vision/opnet-transform": "^0.1.12",
+    "@btc-vision/opnet-transform": "^0.2.1",
     "assemblyscript": "^0.28.9",
     "micromatch": "^4.0.8",
-    "typescript": "^5.9.3",
-    "yaml": "^2.8.1"
+    "typescript": "^5.9.3"
   },
   "files": [
     "assembly/",
