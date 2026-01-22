@@ -26,7 +26,7 @@ export class i256 {
 
   @inline @operator.prefix('!')
   static isEmpty(value: i256): bool {
-    return !value.isZero();
+    return value.isZero();
   }
 
   @inline
