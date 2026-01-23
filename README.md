@@ -2,50 +2,58 @@
 
 ![Bitcoin](https://img.shields.io/badge/Bitcoin-000?style=for-the-badge&logo=bitcoin&logoColor=white)
 ![AssemblyScript](https://img.shields.io/badge/assembly%20script-%23000000.svg?style=for-the-badge&logo=assemblyscript&logoColor=white)
-![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![NodeJS](https://img.shields.io/badge/Node%20js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![WebAssembly](https://img.shields.io/badge/WebAssembly-654FF0?style=for-the-badge&logo=webassembly&logoColor=white)
 ![NPM](https://img.shields.io/badge/npm-CB3837?style=for-the-badge&logo=npm&logoColor=white)
-![Gulp](https://img.shields.io/badge/GULP-%23CF4647.svg?style=for-the-badge&logo=gulp&logoColor=white)
-![ESLint](https://img.shields.io/badge/ESLint-4B3263?style=for-the-badge&logo=eslint&logoColor=white)
 
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
 ## Overview
 
-WebAssembly fixed-length big numbers written in [AssemblyScript](https://github.com/AssemblyScript/assemblyscript). This
-library provides wide numeric types such as `u128`, `u256`, `i128`, and `i256` with full arithmetic operations support.
+High-performance fixed-length big numbers for [AssemblyScript](https://github.com/AssemblyScript/assemblyscript) and
+WebAssembly. This library provides wide numeric types such as `u128`, `u256`, `i128`, and `i256` with full arithmetic
+operations support.
 
-This library is ideal for **economic calculations**, **cryptographic operations**, and any use case requiring *
-*deterministic behavior** with large integers in WebAssembly.
+Designed for **blockchain smart contracts**, **cryptographic operations**, and any use case requiring **deterministic
+behavior** with large integers in WebAssembly environments.
 
-> **⚠️ Important: Floating-Point Arithmetic is Prohibited in Blockchain**
+> **Critical: Floating-Point Arithmetic is Prohibited in Blockchain**
 >
 > Floating-point arithmetic (`f32`, `f64`) is **strictly prohibited** in blockchain and smart contract environments.
 > Floating-point operations are **non-deterministic** across different CPU architectures, compilers, and platforms due
-> to
-> differences in rounding, precision, and IEEE 754 implementation details.
+> to differences in rounding, precision, and IEEE 754 implementation details.
 >
-> This library provide some floating-arithmetic operations but should not be used in smart contracts. If you use
-> floating by mistake, your contract will be invalided on the blockchain.
+> This library provides some floating-arithmetic operations but should not be used in smart contracts. If you use
+> floating by mistake, your contract will be invalidated on the blockchain.
 >
 > **Always use integer arithmetic** (`u128`, `u256`, `i128`, `i256`) for all blockchain computations. For decimal
-> values, use fixed-point representation (e.g., store currency as smallest units like satoshis or wei).
-
-## Fork Information
+> values, use fixed-point representation (e.g., store currency as smallest units like satoshis).
 
 This library is a fork of the original [as-bignum](https://github.com/MaxGraey/as-bignum) by MaxGraey. The original
 library contained **critical vulnerabilities** that have been addressed in this fork.
 
-### Key Improvements
+## Security Audit
 
-- **Security Audit**: This library has been fully audited by **Verichains**. The audit report will be available soon.
-- **Division Support**: Full division and modulo operations have been implemented (missing in the original)
-- **Performance Optimizations**: Many original functions have been rewritten to enhance performance and memory
-  utilization
-- **Comprehensive Unit Tests**: Extensive test coverage has been added to verify vulnerability fixes and ensure
-  correctness
-- **Bug Fixes**: Critical bugs and edge cases from the original library have been patched
+<p align="center">
+  <a href="https://verichains.io">
+    <img src="https://raw.githubusercontent.com/btc-vision/contract-logo/refs/heads/main/public-assets/verichains.png" alt="Verichains" width="100"/>
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://verichains.io">
+    <img src="https://img.shields.io/badge/Security%20Audit-Verichains-4C35E0?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMkw0IDV2Ni41YzAgNS4yNSAzLjQgMTAuMiA4IDExLjUgNC42LTEuMyA4LTYuMjUgOC0xMS41VjVsLTgtM3ptMCAxMC45OVYxOS41Yy0zLjQ1LTEuMTctNS45My00LjgtNi02LjVWNi4zTDEyIDRsMCA4Ljk5eiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=" alt="Audited by Verichains"/>
+  </a>
+  <a href="./SECURITY.md">
+    <img src="https://img.shields.io/badge/Security-Policy-22C55E?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOSAxNi4xN0w0LjgzIDEybC0xLjQyIDEuNDFMOSAxOSAyMSA3bC0xLjQxLTEuNDFMOSAxNi4xN3oiIGZpbGw9IndoaXRlIi8+PC9zdmc+" alt="Security Policy"/>
+  </a>
+</p>
+
+This library has been professionally audited by [**Verichains**](https://verichains.io), a leading blockchain security
+firm specializing in smart contract audits, cryptographic implementation reviews, and WebAssembly security analysis.
+
+For detailed audit information and security policy, see [SECURITY.md](./SECURITY.md).
 
 ## Installation
 
@@ -61,6 +69,24 @@ npm install @btc-vision/as-bignum
 | `i128` | 128-bit signed integer   | Fully implemented & tested |
 | `u256` | 256-bit unsigned integer | Fully implemented & tested |
 | `i256` | 256-bit signed integer   | Basic implementation       |
+
+## Quick Start
+
+```typescript
+import { u128, u256 } from "@btc-vision/as-bignum/assembly";
+
+// Create values
+let a = u256.from(1000);
+let b = u256.from(500);
+
+// Full arithmetic support
+let sum = a + b;
+let product = a * b;
+let quotient = a / b;
+
+// Safe multiply-divide without overflow
+let result = u128.muldiv(u128.Max, u128.from(2), u128.from(3));
+```
 
 ## Usage
 
@@ -396,55 +422,29 @@ npm run test:ci
 # Debug build
 npm run build:debug
 
-# Release build
-npm run build:release
-
-# Default (release)
+# Release build (default)
 npm run build
 ```
 
-## Security Audit
+## Contributing
 
-<p align="center">
-  <a href="https://verichains.io">
-    <img src="https://raw.githubusercontent.com/btc-vision/contract-logo/refs/heads/main/public-assets/verichains.png" alt="Verichains" width="250"/>
-  </a>
-</p>
+Contributions are welcome! Please ensure all tests pass before submitting a pull request.
 
-<p align="center">
-  <a href="https://verichains.io">
-    <img src="https://img.shields.io/badge/Security%20Audit-Verichains-4C35E0?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMkw0IDV2Ni41YzAgNS4yNSAzLjQgMTAuMiA4IDExLjUgNC42LTEuMyA4LTYuMjUgOC0xMS41VjVsLTgtM3ptMCAxMC45OVYxOS41Yy0zLjQ1LTEuMTctNS45My00LjgtNi02LjVWNi4zTDEyIDRsMCA4Ljk5eiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=" alt="Audited by Verichains"/>
-  </a>
-  <a href="./SECURITY.md">
-    <img src="https://img.shields.io/badge/Security-Report-22C55E?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOSAxNi4xN0w0LjgzIDEybC0xLjQyIDEuNDFMOSAxOSAyMSA3bC0xLjQxLTEuNDFMOSAxNi4xN3oiIGZpbGw9IndoaXRlIi8+PC9zdmc+" alt="Security Report"/>
-  </a>
-</p>
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Run tests (`npm test`)
+4. Commit your changes
+5. Push to the branch
+6. Open a Pull Request
 
-This library has been professionally audited by [**Verichains**](https://verichains.io), a leading blockchain security
-firm specializing in smart contract audits, penetration testing, and security assessments.
+## Reporting Issues
 
-### About Verichains
-
-[Verichains](https://verichains.io) is a trusted security partner known for:
-
-- Comprehensive smart contract security audits
-- Blockchain protocol security assessments
-- Cryptographic implementation reviews
-- Vulnerability research and responsible disclosure
-
-### Audit Scope
-
-The full audit report will be available soon. The audit covered:
-
-- Integer overflow/underflow vulnerabilities
-- Division and modulo operation correctness
-- Bit manipulation edge cases
-- Memory safety and bounds checking
-- Performance optimization verification
+- **Bug Reports**: [Open an issue](https://github.com/btc-vision/as-bignum/issues)
+- **Security Vulnerabilities**: See [SECURITY.md](./SECURITY.md) - Do not open public issues for security vulnerabilities
 
 ## License
 
-Apache-2.0
+[Apache-2.0](./LICENSE)
 
 ## Credits
 
@@ -452,10 +452,10 @@ Apache-2.0
 - Fork maintained by [OPNet](https://github.com/btc-vision)
 - Security audit by [Verichains](https://verichains.io)
 
-## Contributing
+## Links
 
-Contributions are welcome! Please ensure all tests pass before submitting a pull request.
-
-```bash
-npm test
-```
+- [OPNet Website](https://opnet.org)
+- [Documentation](https://docs.opnet.org)
+- [GitHub](https://github.com/btc-vision/as-bignum)
+- [npm](https://www.npmjs.com/package/@btc-vision/as-bignum)
+- [Verichains](https://verichains.io)
