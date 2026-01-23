@@ -1,5 +1,14 @@
 # Changelog
 
+
+## [v0.1.0-beta.0] - 2026-01-23
+
+### Other Changes
+
+- Fix i256.isEmpty() inverted logic (5) by @matbout
+- Add CI/CD, changelog, audit, and documentation updates (6) by @BlobMaster41
+
+
 All notable changes to this project will be documented in this file.
 
 This changelog is automatically generated from merged pull requests.
