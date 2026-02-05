@@ -1,6 +1,10 @@
 # Changelog
 
 
+## [v0.1.0] - 2026-02-05
+
+- No changes
+
 ## [v0.1.0-beta.0] - 2026-01-23
 
 ### Other Changes
