@@ -1,6 +1,6 @@
 {
   "name": "@btc-vision/as-bignum",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "High-performance 128-bit and 256-bit integer arithmetic for AssemblyScript. Fully audited by Verichains. Designed for blockchain and cryptographic applications.",
   "main": "assembly/index.ts",
   "types": "assembly/index.ts",
@@ -65,8 +65,8 @@
     "@btc-vision/as-pect-assembly": "^8.2.0",
     "@btc-vision/as-pect-cli": "^8.2.0",
     "@btc-vision/as-pect-transform": "^8.2.0",
-    "@btc-vision/opnet-transform": "^1.0.0",
     "@btc-vision/assemblyscript": "^0.29.2",
+    "@btc-vision/opnet-transform": "^1.0.0",
     "micromatch": "^4.0.8",
     "typescript": "^5.9.3"
   },
@@ -81,5 +81,8 @@
   ],
   "engines": {
     "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "yaml": "^2.8.2"
   }
 }
