@@ -68,7 +68,7 @@
     "@btc-vision/assemblyscript": "^0.29.3",
     "@btc-vision/opnet-transform": "^1.2.2",
     "micromatch": "^4.0.8",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "yaml": "^2.8.2"
   },
   "files": [
